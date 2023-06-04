@@ -77,12 +77,22 @@ func main() {
 			os.Exit(1)
 		}
 
-		diffCmd := exec.Command("git", "diff")
+		var diffCmd *exec.Cmd
+		// If -a is passed, get all changes (including unstaged)
+		if CLI.Commit.AutoCommit {
+			diffCmd = exec.Command("git", "diff")
+		} else {
+			// Otherwise, only get staged changes
+			diffCmd = exec.Command("git", "diff", "--cached")
+		}
 		diffOutput, err := diffCmd.Output()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+
+		// Print the diff output to the user
+		fmt.Println(string(diffOutput))
 
 		msg, err := generateCommitMessage(string(diffOutput), config)
 		if err != nil {
