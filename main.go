@@ -72,7 +72,7 @@ func main() {
 
 	diffCmd := exec.Command("git", "diff")
 	diffOutput, err := diffCmd.Output()
-	fmt.Println(diffOutput)
+	fmt.Println(string(diffOutput))
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
