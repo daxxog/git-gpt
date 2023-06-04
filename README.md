@@ -20,8 +20,6 @@ For corporate users or contributors, please consult with your Information Securi
 
 Always review and clean your diffs before sharing them through the API, ensuring they do not contain any sensitive data.
 
-Your understanding and compliance are greatly appreciated. Remember to use this feature responsibly, respecting the privacy and security of all sensitive data.
-
 
 ## Installation
 
