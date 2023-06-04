@@ -53,7 +53,7 @@ func generateCommitMessage(diff string, config *Config) (string, error) {
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleUser,
-					Content: "Generate a git commit message for:\n" + diff,
+					Content: "Write a commit message for these changes:\n" + diff,
 				},
 			},
 		},
@@ -79,7 +79,6 @@ func main() {
 
 		diffCmd := exec.Command("git", "diff")
 		diffOutput, err := diffCmd.Output()
-		fmt.Println(string(diffOutput))
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -91,13 +90,10 @@ func main() {
 			os.Exit(1)
 		}
 
-		var commitCmd *exec.Cmd
 		if CLI.Commit.AutoCommit {
-			if CLI.Commit.SkipMsg {
-				commitCmd = exec.Command("git", "commit", "-a", "-m", msg)
-			} else {
-				commitCmd = exec.Command("git", "commit", "-a")
-			}
+			var commitCmd *exec.Cmd
+			// First commit with the generated message
+			commitCmd = exec.Command("git", "commit", "-a", "-m", msg)
 
 			// Set the command output to our standard output
 			commitCmd.Stdout = os.Stdout
@@ -108,7 +104,23 @@ func main() {
 				fmt.Println(err)
 				os.Exit(1)
 			}
+
+			// If -m flag is not set, open the editor to let user amend the commit message
+			if !CLI.Commit.SkipMsg {
+				commitCmd = exec.Command("git", "commit", "--amend")
+
+				// Set the command output to our standard output
+				commitCmd.Stdout = os.Stdout
+				commitCmd.Stderr = os.Stderr
+
+				err = commitCmd.Run()
+				if err != nil {
+					fmt.Println(err)
+					os.Exit(1)
+				}
+			}
 		}
+
 	default:
 		panic(ctx.Command())
 	}
