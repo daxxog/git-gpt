@@ -1,69 +1,18 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 
 	"github.com/alecthomas/kong"
-	openai "github.com/sashabaranov/go-openai"
-	"gopkg.in/yaml.v2"
 )
-
-// Config represents OpenAI API configuration
-type Config struct {
-	Token string `yaml:"token"`
-}
 
 var CLI struct {
 	Commit struct {
 		All          bool `short:"a" help:"Stage and commit all changes (including unstaged). Under the hood, this passes the -a flag into git commit."`
 		SkipAmendMsg bool `short:"m" help:"Commit directly with the AI-generated message without amendment."`
 	} `cmd:"" help:"Commits files using an AI-generated message based on diff. See git-gpt -h commit for more details."`
-}
-
-func loadConfig() (*Config, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := ioutil.ReadFile(fmt.Sprintf("%s/.config/git-gpt/openai.yaml", home))
-	if err != nil {
-		return nil, err
-	}
-
-	var config Config
-	err = yaml.Unmarshal(data, &config)
-	if err != nil {
-		return nil, err
-	}
-
-	return &config, nil
-}
-
-func generateCommitMessage(diff string, config *Config) (string, error) {
-	client := openai.NewClient(config.Token)
-	resp, err := client.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model: openai.GPT3Dot5Turbo,
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: "Write a commit message for these changes:\n" + diff,
-				},
-			},
-		},
-	)
-
-	if err != nil {
-		return "", err
-	}
-
-	return resp.Choices[0].Message.Content, nil
 }
 
 func main() {
