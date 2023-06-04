@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
 
+	"github.com/alecthomas/kong"
 	openai "github.com/sashabaranov/go-openai"
 	"gopkg.in/yaml.v2"
 )
@@ -15,6 +15,13 @@ import (
 // Config represents OpenAI API configuration
 type Config struct {
 	Token string `yaml:"token"`
+}
+
+var CLI struct {
+	Commit struct {
+		AutoCommit bool `short:"a" help:"Auto commit flag"`
+		SkipMsg    bool `short:"m" help:"Skip message flag"`
+	} `cmd:"" help:"Commit files."`
 }
 
 func loadConfig() (*Config, error) {
@@ -46,7 +53,7 @@ func generateCommitMessage(diff string, config *Config) (string, error) {
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleUser,
-					Content: "Create a commit message for:\n" + diff,
+					Content: "Generate a git commit message for:\n" + diff,
 				},
 			},
 		},
@@ -60,46 +67,48 @@ func generateCommitMessage(diff string, config *Config) (string, error) {
 }
 
 func main() {
-	autoCommit := flag.Bool("a", false, "Auto commit flag")
-	message := flag.Bool("m", false, "Skip message flag")
-	flag.Parse()
+	ctx := kong.Parse(&CLI)
+	switch ctx.Command() {
+	case "commit":
 
-	config, err := loadConfig()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	diffCmd := exec.Command("git", "diff")
-	diffOutput, err := diffCmd.Output()
-	fmt.Println(string(diffOutput))
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	msg, err := generateCommitMessage(string(diffOutput), config)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	if *autoCommit {
-		var commitCmd *exec.Cmd
-		if *message {
-			commitCmd = exec.Command("git", "commit", "-a", "-m", msg)
-		} else {
-			commitCmd = exec.Command("git", "commit", "-a")
-		}
-
-		// Set the command output to our standard output
-		commitCmd.Stdout = os.Stdout
-		commitCmd.Stderr = os.Stderr
-
-		err = commitCmd.Run()
+		config, err := loadConfig()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+
+		diffCmd := exec.Command("git", "diff")
+		diffOutput, err := diffCmd.Output()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		msg, err := generateCommitMessage(string(diffOutput), config)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		var commitCmd *exec.Cmd
+		if CLI.Commit.AutoCommit {
+			if CLI.Commit.SkipMsg {
+				commitCmd = exec.Command("git", "commit", "-a", "-m", msg)
+			} else {
+				commitCmd = exec.Command("git", "commit", "-a")
+			}
+
+			// Set the command output to our standard output
+			commitCmd.Stdout = os.Stdout
+			commitCmd.Stderr = os.Stderr
+
+			err = commitCmd.Run()
+			if err != nil {
+				fmt.Println(err)
+				os.Exit(1)
+			}
+		}
+	default:
+		panic(ctx.Command())
 	}
 }
