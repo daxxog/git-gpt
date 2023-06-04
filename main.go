@@ -83,13 +83,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	var commitCmd *exec.Cmd
 	if *autoCommit {
+		var commitCmd *exec.Cmd
 		if *message {
 			commitCmd = exec.Command("git", "commit", "-a", "-m", msg)
 		} else {
 			commitCmd = exec.Command("git", "commit", "-a")
 		}
+
+		// Set the command output to our standard output
+		commitCmd.Stdout = os.Stdout
+		commitCmd.Stderr = os.Stderr
+
 		err = commitCmd.Run()
 		if err != nil {
 			fmt.Println(err)
