@@ -19,7 +19,7 @@ type Config struct {
 
 var CLI struct {
 	Commit struct {
-		AutoCommit bool `short:"a" help:"Auto commit flag"`
+		AutoCommit bool `short:"a" help:"Tell the command to automatically stage files that have been modified and deleted, but new files you have not told Git about are not affected."`
 		SkipMsg    bool `short:"m" help:"Skip message flag"`
 	} `cmd:"" help:"Commit files."`
 }
@@ -90,10 +90,28 @@ func main() {
 			os.Exit(1)
 		}
 
+		var commitCmd *exec.Cmd
+		// First commit with the generated message
+		// If -a is passed, include it in the command
 		if CLI.Commit.AutoCommit {
-			var commitCmd *exec.Cmd
-			// First commit with the generated message
 			commitCmd = exec.Command("git", "commit", "-a", "-m", msg)
+		} else {
+			commitCmd = exec.Command("git", "commit", "-m", msg)
+		}
+
+		// Set the command output to our standard output
+		commitCmd.Stdout = os.Stdout
+		commitCmd.Stderr = os.Stderr
+
+		err = commitCmd.Run()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		// If -m flag is not set, open the editor to let user amend the commit message
+		if !CLI.Commit.SkipMsg {
+			commitCmd = exec.Command("git", "commit", "--amend")
 
 			// Set the command output to our standard output
 			commitCmd.Stdout = os.Stdout
@@ -103,21 +121,6 @@ func main() {
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)
-			}
-
-			// If -m flag is not set, open the editor to let user amend the commit message
-			if !CLI.Commit.SkipMsg {
-				commitCmd = exec.Command("git", "commit", "--amend")
-
-				// Set the command output to our standard output
-				commitCmd.Stdout = os.Stdout
-				commitCmd.Stderr = os.Stderr
-
-				err = commitCmd.Run()
-				if err != nil {
-					fmt.Println(err)
-					os.Exit(1)
-				}
 			}
 		}
 
