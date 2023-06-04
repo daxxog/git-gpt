@@ -46,7 +46,7 @@ func generateCommitMessage(diff string, config *Config) (string, error) {
 			Messages: []openai.ChatCompletionMessage{
 				{
 					Role:    openai.ChatMessageRoleUser,
-					Content: "Generate a git commit message for:\n" + diff,
+					Content: "Create a commit message for:\n" + diff,
 				},
 			},
 		},
