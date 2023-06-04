@@ -19,9 +19,9 @@ type Config struct {
 
 var CLI struct {
 	Commit struct {
-		AutoCommit bool `short:"a" help:"Tell the command to automatically stage files that have been modified and deleted, but new files you have not told Git about are not affected."`
-		SkipMsg    bool `short:"m" help:"Skip message flag"`
-	} `cmd:"" help:"Commit files."`
+		All          bool `short:"a" help:"Stage and commit all changes (including unstaged). Under the hood, this passes the -a flag into git commit."`
+		SkipAmendMsg bool `short:"m" help:"Commit directly with the AI-generated message without amendment."`
+	} `cmd:"" help:"Commits files using an AI-generated message based on diff. See git-gpt -h commit for more details."`
 }
 
 func loadConfig() (*Config, error) {
@@ -79,7 +79,7 @@ func main() {
 
 		var diffCmd *exec.Cmd
 		// If -a is passed, get all changes (including unstaged)
-		if CLI.Commit.AutoCommit {
+		if CLI.Commit.All {
 			diffCmd = exec.Command("git", "diff")
 		} else {
 			// Otherwise, only get staged changes
@@ -103,7 +103,7 @@ func main() {
 		var commitCmd *exec.Cmd
 		// First commit with the generated message
 		// If -a is passed, include it in the command
-		if CLI.Commit.AutoCommit {
+		if CLI.Commit.All {
 			commitCmd = exec.Command("git", "commit", "-a", "-m", msg)
 		} else {
 			commitCmd = exec.Command("git", "commit", "-m", msg)
@@ -120,7 +120,7 @@ func main() {
 		}
 
 		// If -m flag is not set, open the editor to let user amend the commit message
-		if !CLI.Commit.SkipMsg {
+		if !CLI.Commit.SkipAmendMsg {
 			commitCmd = exec.Command("git", "commit", "--amend")
 
 			// Set the command output to our standard output
