@@ -1,9 +1,8 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
@@ -18,7 +17,7 @@ func loadConfig() (*Config, error) {
 		return nil, err
 	}
 
-	data, err := ioutil.ReadFile(fmt.Sprintf("%s/.config/git-gpt/openai.yaml", home))
+	data, err := os.ReadFile(filepath.Join(home, ".config", "git-gpt", "openai.yaml"))
 	if err != nil {
 		return nil, err
 	}
